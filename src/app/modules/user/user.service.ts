@@ -5,6 +5,8 @@ import { envVars } from "../../config/env";
 import AppError from "../../errorHelpers/AppError";
 import { IAuthProvider, IUser, Role } from "./user.interface";
 import { User } from "./user.model";
+import { QueryBuilder } from "../../utils/QueryBuilder";
+import { userSearchableFields } from "./user.constant";
 
 const updateUser = async (
   userId: string,
@@ -53,15 +55,36 @@ const updateUser = async (
 
   return newUpdatedUser;
 };
+const getAllUsers = async (query: Record<string, string>) => {
+  const queryBuilder = new QueryBuilder(User.find(), query);
 
-const getAllUsers = async () => {
-  const users = await User.find({});
-  const totalUsers = await User.countDocuments();
+  const users = await queryBuilder
+    .search(userSearchableFields)
+    .filter()
+    .sort()
+    .fields()
+    .paginate();
+  
+  const [data, meta] = await Promise.all([
+    users.build(),
+    queryBuilder.getMeta(),
+  ]);
+
+  // Safely exclude password field if it exists
+  const sanitizedData = data.map(user => {
+    const userObject = user.toObject ? user.toObject() : user;
+    
+    // Check if password exists before removing
+    if ('password' in userObject) {
+      const { password, ...userWithoutPassword } = userObject;
+      return userWithoutPassword;
+    }
+    return userObject;
+  });
+
   return {
-    data: users,
-    meta: {
-      total: totalUsers,
-    },
+    data: sanitizedData,
+    meta,
   };
 };
 
@@ -73,20 +96,21 @@ const updateProfile = async (userId: string, payload: Partial<IUser>) => {
   }
 
   // Only allow updating specific fields for profile
-  const allowedFields = ['name', 'phone', 'address', 'picture'];
+  const allowedFields = ["name", "phone", "address", "picture"];
   const updateData: Partial<IUser> = {};
 
-  Object.keys(payload).forEach(key => {
-    if (allowedFields.includes(key) && payload[key as keyof Partial<IUser>] !== undefined) {
+  Object.keys(payload).forEach((key) => {
+    if (
+      allowedFields.includes(key) &&
+      payload[key as keyof Partial<IUser>] !== undefined
+    ) {
       (updateData as any)[key] = payload[key as keyof Partial<IUser>];
     }
   });
 
-  const updatedUser = await User.findByIdAndUpdate(
-    userId,
-    updateData,
-    { new: true }
-  ).select('-password');
+  const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
+    new: true,
+  }).select("-password");
 
   return updatedUser;
 };
