@@ -3,7 +3,7 @@ import { checkAuth } from "../../middlewares/checkAuth";
 import { validateRequest } from "../../middlewares/validateRequest";
 import { UserControllers } from "./user.controller";
 import { Role } from "./user.interface";
-import { updateUserZodSchema } from "./user.validation";
+import { updateProfileZodSchema, updateUserZodSchema } from "./user.validation";
 
 const router = Router();
 
@@ -12,6 +12,13 @@ router.get(
   checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
   UserControllers.getAllUsers
 );
+
+router.patch(
+  "/update-profile",
+  checkAuth(Role.TRAINEE, Role.TRAINER, Role.ADMIN),
+  UserControllers.updateProfile
+);
+
 router.patch(
   "/:id",
   validateRequest(updateUserZodSchema),

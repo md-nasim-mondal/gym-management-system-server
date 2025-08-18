@@ -65,7 +65,34 @@ const getAllUsers = async () => {
   };
 };
 
+const updateProfile = async (userId: string, payload: Partial<IUser>) => {
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  // Only allow updating specific fields for profile
+  const allowedFields = ['name', 'phone', 'address', 'picture'];
+  const updateData: Partial<IUser> = {};
+
+  Object.keys(payload).forEach(key => {
+    if (allowedFields.includes(key) && payload[key as keyof Partial<IUser>] !== undefined) {
+      (updateData as any)[key] = payload[key as keyof Partial<IUser>];
+    }
+  });
+
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    updateData,
+    { new: true }
+  ).select('-password');
+
+  return updatedUser;
+};
+
 export const UserServices = {
   getAllUsers,
   updateUser,
+  updateProfile,
 };

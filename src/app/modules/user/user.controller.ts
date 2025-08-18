@@ -40,7 +40,24 @@ const getAllUsers = catchAsync(
   }
 );
 
+const updateProfile = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const userId = (req.user as JwtPayload)._id;
+    const payload = req.body;
+
+    const updatedUser = await UserServices.updateProfile(userId, payload);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Profile updated successfully",
+      data: updatedUser,
+    });
+  }
+);
+
 export const UserControllers = {
   getAllUsers,
   updateUser,
+  updateProfile,
 };
