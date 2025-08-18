@@ -11,11 +11,16 @@ export const checkAuth =
   (...authRoles: string[]) =>
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const accessToken = req.headers.authorization;
+      const authHeader = req.headers.authorization;
 
-      if (!accessToken) {
+      if (!authHeader) {
         throw new AppError(403, "No Token Received");
       }
+
+      // Extract token from Bearer format if present
+      const accessToken = authHeader.startsWith("Bearer ")
+        ? authHeader.substring(7) // Remove 'Bearer ' prefix
+        : authHeader;
 
       const verifiedToken = verifyToken(
         accessToken,
@@ -43,10 +48,9 @@ export const checkAuth =
       if (!authRoles.includes(verifiedToken.role)) {
         throw new AppError(403, "You are not permitted to view this route!!!");
       }
-      req.user = verifiedToken;
+      req.user = verifiedToken && { _id: isUserExist._id };
       next();
     } catch (error) {
-    //   console.log("jwt error", error);
       next(error);
     }
   };

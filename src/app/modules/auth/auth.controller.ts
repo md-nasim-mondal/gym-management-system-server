@@ -9,6 +9,21 @@ import { setAuthCookie } from "../../utils/setCookie";
 import { createUserTokens } from "../../utils/userTokens";
 import { AuthServices } from "./auth.service";
 
+const register = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const result = await AuthServices.register(req.body);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.CREATED,
+      message: "User registered successfully",
+      data: {
+        user: result.user,
+      },
+    });
+  }
+);
+
 const credentialsLogin = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const loginInfo = await AuthServices.credentialsLogin(req.body);
@@ -22,31 +37,43 @@ const credentialsLogin = catchAsync(
       httpOnly: true,
       secure: false,
     });
-  }
-);
-const getNewAccessToken = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
-    const refreshToken = req.cookies.refreshToken;
-    if (!refreshToken) {
-      throw new AppError(
-        httpStatus.BAD_REQUEST,
-        "No refresh token recieved from cookies"
-      );
-    }
-    const tokenInfo = await AuthServices.getNewAccessToken(
-      refreshToken as string
-    );
-
-    setAuthCookie(res, tokenInfo);
 
     sendResponse(res, {
       success: true,
       statusCode: httpStatus.OK,
-      message: "New Access Token Retrieved Successfully",
-      data: tokenInfo,
+      message: "User logged in successfully",
+      data: loginInfo,
     });
   }
 );
+
+const refreshToken = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const token = req.cookies.refreshToken || req.body.refreshToken;
+
+    if (!token) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Refresh token is required");
+    }
+
+    const result = await AuthServices.refreshToken(token);
+
+    // Set new access token in cookie
+    res.cookie("accessToken", result.accessToken, {
+      httpOnly: true,
+      secure: false,
+    });
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "New access token generated successfully",
+      data: {
+        accessToken: result.accessToken,
+      },
+    });
+  }
+);
+
 const logout = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     res.clearCookie("accessToken", {
@@ -68,6 +95,7 @@ const logout = catchAsync(
     });
   }
 );
+
 const resetPassword = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const newPassword = req.body.newPassword;
@@ -119,10 +147,11 @@ const googleCallbackController = catchAsync(
   }
 );
 
-export const AuthControllers = {
+export const AuthController = {
   credentialsLogin,
-  getNewAccessToken,
   logout,
   resetPassword,
   googleCallbackController,
+  register,
+  refreshToken,
 };

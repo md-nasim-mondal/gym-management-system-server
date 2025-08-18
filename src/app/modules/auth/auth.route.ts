@@ -1,25 +1,27 @@
-import { NextFunction, Request, Response, Router } from "express";
-import passport from "passport";
-import { checkAuth } from "../../middlewares/checkAuth";
-import { Role } from "../user/user.interface";
-import { AuthControllers } from "./auth.controller";
+import express from "express";
+import { AuthController } from "./auth.controller";
+import { validateRequest } from "../../middlewares/validateRequest";
+import {
+  loginValidationSchema,
+  registerValidationSchema,
+} from "./auth.validation";
 
-const router = Router()
+const router = express.Router();
 
-router.post("/login", AuthControllers.credentialsLogin)
-router.post("/refresh-token", AuthControllers.getNewAccessToken)
-router.post("/logout", AuthControllers.logout)
-router.post("/reset-password", checkAuth(...Object.values(Role)), AuthControllers.resetPassword)
+router.post(
+  "/register",
+  validateRequest(registerValidationSchema),
+  AuthController.register
+);
 
+router.post(
+  "/login",
+  validateRequest(loginValidationSchema),
+  AuthController.credentialsLogin
+);
 
-//  /booking -> /login -> successful google login -> /booking frontend
-// /login -> successful google login -> / frontend
-router.get("/google", async (req: Request, res: Response, next: NextFunction) => {
-    const redirect = req.query.redirect || "/"
-    passport.authenticate("google", { scope: ["profile", "email"], state: redirect as string })(req, res, next)
-})
+router.post("/refresh-token", AuthController.refreshToken);
 
-// api/v1/auth/google/callback?state=/booking
-router.get("/google/callback", passport.authenticate("google", { failureRedirect: "/login" }), AuthControllers.googleCallbackController)
+router.post("/logout", AuthController.logout);
 
 export const AuthRoutes = router;
