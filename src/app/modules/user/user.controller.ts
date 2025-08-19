@@ -8,9 +8,7 @@ import { UserServices } from "./user.service";
 const updateUser = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const userId = req.params.id;
-
     const verifiedToken = req.user;
-
     const payload = req.body;
     const user = await UserServices.updateUser(
       userId,

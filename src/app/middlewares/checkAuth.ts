@@ -11,16 +11,17 @@ export const checkAuth =
   (...authRoles: string[]) =>
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const authHeader = req.headers.authorization;
+      // const authHeader = req.headers.authorization;
+      const initialAccessToken = req.cookies?.accessToken;
 
-      if (!authHeader) {
+      if (!initialAccessToken) {
         throw new AppError(403, "No Token Received");
       }
 
       // Extract token from Bearer format if present
-      const accessToken = authHeader.startsWith("Bearer ")
-        ? authHeader.substring(7) // Remove 'Bearer ' prefix
-        : authHeader;
+      const accessToken = initialAccessToken.startsWith("Bearer ")
+        ? initialAccessToken.substring(7) // Remove 'Bearer ' prefix
+        : initialAccessToken;
 
       const verifiedToken = verifyToken(
         accessToken,
