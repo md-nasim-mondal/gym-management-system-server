@@ -28,15 +28,7 @@ const credentialsLogin = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const loginInfo = await AuthServices.credentialsLogin(req.body);
 
-    res.cookie("accessToken", loginInfo.accessToken, {
-      httpOnly: true,
-      secure: false,
-    });
-
-    res.cookie("refreshToken", loginInfo.refreshToken, {
-      httpOnly: true,
-      secure: false,
-    });
+    setAuthCookie(res, loginInfo)
 
     sendResponse(res, {
       success: true,
@@ -60,7 +52,8 @@ const refreshToken = catchAsync(
     // Set new access token in cookie
     res.cookie("accessToken", result.accessToken, {
       httpOnly: true,
-      secure: false,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     });
 
     sendResponse(res, {
@@ -78,13 +71,13 @@ const logout = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     res.clearCookie("accessToken", {
       httpOnly: true,
-      secure: false,
-      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     });
     res.clearCookie("refreshToken", {
       httpOnly: true,
-      secure: false,
-      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     });
 
     sendResponse(res, {
